@@ -1,13 +1,25 @@
-#' fourier_basis.R
-#' author: Cristian Castiglione
-#' creation: 10/08/2023
-#' last change: 24/10/2023
-#' reference:
-#'    Ramsay, Silverman (2005) 
-#'    Functional data analysis, Second edition
-#'    Springer
+# file: fourier_basis.R
+# author: Cristian Castiglione
+# creation: 10/08/2023
+# last change: 24/10/2023
+# reference:
+#    Ramsay, Silverman (2005) 
+#    Functional data analysis, Second edition
+#    Springer
 
-# Create the basis matrix for third order B-spline regression 
+
+#' @title Create the Fourier design matrix for scatter smoothing
+#' 
+#' @description
+#' \code{get.fourier} compute the basis matrix for a Fourier basis expansion of dimension \code{n}
+#' 
+#' @param x description
+#' @param n number of knots to include in the basis expansion
+#' @param a lower bound of x
+#' @param b upper bound of x
+#' @param f frequency value
+#' 
+#' @export
 get.fourier = function (x, n, a = NULL, b = NULL, f = NULL) {
   if (is.null(a)) a = min(x) # lower bound
   if (is.null(b)) b = max(x) # upper bound
