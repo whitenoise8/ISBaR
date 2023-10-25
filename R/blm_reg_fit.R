@@ -309,37 +309,3 @@ init.blm.control = function (control) {
   # Return the control parameters
   return (default)
 }
-
-# Function for initializing the unknown parameters of the model
-init.blm.param = function (y, X, Z, prior) {
-  
-  # Data dimension
-  n = nrow(X)
-  p = ncol(X)
-  q = ncol(Z)
-  
-  # Fixed and random effect indices
-  idx = 1:p
-  idz = (p+1):(p+q)
-  
-  # Init: beta
-  C = cbind(X, Z)
-  D = diag(c(rep(0, p), rep(0.1/q, q)))
-  A = crossprod(C, C) + (0.1 / q) * D
-  b = crossprod(C, y)
-  beta = solve(A, b)
-  eta = drop(C %*% beta)
-  
-  # Init: psi
-  ap = prior$a + 0.5 * n
-  bp = prior$b + 0.5 * sum((y - eta)^2)
-  psi = rgamma(1, shape = ap, rate = ap)
-  
-  # Init: tau
-  at = 0.5 * (prior$v + q)
-  bt = 0.5 * (prior$v + sum(beta[idz]^2))
-  tau = rgamma(1, shape = at, rate = at)
-  
-  # output
-  list(beta = beta, tau = tau, psi = psi)
-}
