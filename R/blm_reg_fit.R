@@ -1,4 +1,4 @@
-# blm_reg_fit.R
+# file: blm_reg_fit.R
 # author: Cristian Castiglione
 # creation: 09/08/2023
 # last change: 09/08/2023
@@ -99,20 +99,15 @@ blm.reg.fit = function (y, X, Z, prior = list(), control = list()) {
   
   # Initialize the unknown parameters
   lambda = .1 / (p+q)
-  beta  = drop(solve(A + lambda * D, b))
-  eta   = drop(C %*% beta)
-  psi   = rgamma(1, shape = prior$a + 0.5 * n, rate = prior$b + 0.5 * sum((y - eta)^2))
-  tau   = rgamma(1, shape = 0.5 * (prior$v + q), rate = 0.5 * (prior$v + sum(beta[idz]^2)))
+  beta = drop(solve(A + lambda * D, b))
+  eta = drop(C %*% beta)
+  psi = rgamma(1, shape = prior$a + 0.5 * n, rate = prior$b + 0.5 * sum((y - eta)^2))
+  tau = rgamma(1, shape = 0.5 * (prior$v + q), rate = 0.5 * (prior$v + sum(beta[idz]^2)))
   
   # Compute the log prior, likelihood and posterior
-  # logprior = 0
-  # logprior = logprior + sum(dnorm(beta[idz], mean = 0, sd = 1 / sqrt(tau), log = TRUE))
-  # logprior = logprior + dgamma(tau, shape = 0.5 * prior$v, rate = 0.5 * prior$v, log = TRUE)
-  # logprior = logprior + dgamma(psi, shape = prior$a, rate = prior$b, log = TRUE)
-  # loglik   = sum(dnorm(y, mean = eta, sd = 1 / sqrt(psi), log = TRUE))
   logprior = get.logprior(beta[idz], tau, psi, prior)
   loglik = get.loglik(y, eta, psi)
-  logpost  = logprior + loglik
+  logpost = logprior + loglik
   
   # Store the initial values
   burn$beta[1,]    = beta
@@ -154,11 +149,6 @@ blm.reg.fit = function (y, X, Z, prior = list(), control = list()) {
     tau = rgamma(1, shape = at, rate = bt)
     
     # Compute the log prior, likelihood and posterior
-    # logprior = 0
-    # logprior = logprior + sum(dnorm(beta[idz], mean = 0, sd = 1 / sqrt(tau), log = TRUE))
-    # logprior = logprior + dgamma(tau, shape = prior$v / 2, rate = prior$v / 2, log = TRUE)
-    # logprior = logprior + dgamma(psi, shape = prior$a, rate = prior$b, log = TRUE)
-    # loglik   = sum(dnorm(y, mean = eta, sd = 1 / sqrt(psi), log = TRUE))
     logprior = get.logprior(beta[idz], tau, psi, prior)
     loglik = get.loglik(y, eta, psi)
     logpost  = logprior + loglik
