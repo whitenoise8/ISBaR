@@ -2,24 +2,21 @@
 % Please edit documentation in R/fourier_basis.R
 \name{get.fourier}
 \alias{get.fourier}
-\title{fourier_basis.R
-author: Cristian Castiglione
-creation: 10/08/2023
-last change: 24/10/2023
-reference:
-   Ramsay, Silverman (2005) 
-   Functional data analysis, Second edition
-   Springer}
+\title{Create the Fourier design matrix for scatter smoothing}
 \usage{
 get.fourier(x, n, a = NULL, b = NULL, f = NULL)
 }
+\arguments{
+\item{x}{description}
+
+\item{n}{number of knots to include in the basis expansion}
+
+\item{a}{lower bound of x}
+
+\item{b}{upper bound of x}
+
+\item{f}{frequency value}
+}
 \description{
-fourier_basis.R
-author: Cristian Castiglione
-creation: 10/08/2023
-last change: 24/10/2023
-reference:
-   Ramsay, Silverman (2005) 
-   Functional data analysis, Second edition
-   Springer
+\code{get.fourier} compute the basis matrix for a Fourier basis expansion of dimension \code{n}
 }
