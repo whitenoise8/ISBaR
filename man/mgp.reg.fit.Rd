@@ -11,7 +11,7 @@ mgp.reg.fit(y, X, Z, prior = list(), control = list())
 
 \item{X}{fixed effect design matrix, including all the variables that must not be penalized}
 
-\item{Z}{random effect design matrix, including all the variable subject to regularization}
+\item{Z}{list of random effect matrices, including all the variable subject to regularization}
 
 \item{prior}{list of prior parameters. More information are provided in 'Details'.}
 
@@ -22,7 +22,7 @@ Returns an object of class "blm", which is a list containing the following eleme
 \describe{
   \item{\code{y}}{response vector}
   \item{\code{X}}{fixed effect design matrix}
-  \item{\code{Z}}{random effect design matrix}
+  \item{\code{Z}}{liset of random effect matrices}
   \item{\code{prior}}{list of prior parameters}
   \item{\code{control}}{list of control parameters}
   \item{\code{burn}}{list containig the sampled chains of all the parameters during the burn-in iterations}
