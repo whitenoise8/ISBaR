@@ -55,170 +55,6 @@ blm.reg.fit = function (y, X, Z, prior = list(), control = list()) {
   totiter = control$burn + control$niter
   
   # Log-prior density function
-  get.logprior = function (beta, tau, psi, prior) {
-    out = 0
-    out = out + sum(dnorm(beta, mean = 0, sd = 1 / sqrt(tau), log = TRUE))
-    out = out + dgamma(tau, shape = 0.5 * prior$v, rate = 0.5 * prior$v, log = TRUE)
-    out = out + dgamma(psi, shape = prior$a, rate = prior$b, log = TRUE)
-    return (out)
-  }
-  
-  # Log-likelihood function
-  get.loglik = function (y, eta, psi) {
-    sum(dnorm(y, mean = eta, sd = 1 / sqrt(psi), log = TRUE))
-  }
-  
-  # Data dimenstions
-  n = nrow(X)
-  p = ncol(X)
-  q = ncol(Z)
-  
-  idx = 1:p
-  idz = (p+1):(p+q)
-  
-  # Precompute the sufficient statistics
-  D = diag(c(rep(0, p), rep(1, q)))
-  C = cbind(X, Z)
-  A = crossprod(C, C)
-  b = crossprod(C, y)
-  
-  # Allocate the memory for the Markov chains
-  burn = list(beta     = matrix(NA, nrow = control$burn, ncol = p+q),
-              tau      = rep(NA, length = control$burn),
-              psi      = rep(NA, length = control$burn),
-              logprior = rep(NA, length = control$burn),
-              loglik   = rep(NA, length = control$burn),
-              logpost  = rep(NA, length = control$burn))
-  
-  trace = list(beta     = matrix(NA, nrow = control$niter, ncol = p+q),
-               tau      = rep(NA, length = control$niter),
-               psi      = rep(NA, length = control$niter),
-               logprior = rep(NA, length = control$niter),
-               loglik   = rep(NA, length = control$niter),
-               logpost  = rep(NA, length = control$niter))
-  
-  # Initialize the unknown parameters
-  lambda = .1 / (p+q)
-  beta = drop(solve(A + lambda * D, b))
-  eta = drop(C %*% beta)
-  psi = rgamma(1, shape = prior$a + 0.5 * n, rate = prior$b + 0.5 * sum((y - eta)^2))
-  tau = rgamma(1, shape = 0.5 * (prior$v + q), rate = 0.5 * (prior$v + sum(beta[idz]^2)))
-  
-  # Compute the log prior, likelihood and posterior
-  logprior = get.logprior(beta[idz], tau, psi, prior)
-  loglik = get.loglik(y, eta, psi)
-  logpost = logprior + loglik
-  
-  # Store the initial values
-  burn$beta[1,]    = beta
-  burn$tau[1]      = tau
-  burn$psi[1]      = psi
-  burn$logprior[1] = logprior
-  burn$loglik[1]   = loglik
-  burn$logpost[1]  = logpost
-  
-  if (control$verbose) {
-    cat(c(rep("-", 50), "\n"), sep = "")
-  }
-  
-  for (iter in 2:totiter) {
-    
-    if (control$verbose) {
-      if (iter %% control$report == 0) {
-        cat(gettextf(" iter: %5d /%5d \t", iter, totiter),
-            gettextf(" logp: %.4f \n", logpost))
-      }
-      
-      if (iter == control$burn) {
-        cat(c(rep("-", 50), "\n"), sep = "")
-      }
-    }
-    
-    # Update: beta
-    beta = rmnorm(tau * D + psi * A, psi * b)
-    eta = drop(C %*% beta)
-    
-    # Update: psi
-    ap = prior$a + 0.5 * n
-    bp = prior$b + 0.5 * sum((y - eta)^2)
-    psi = rgamma(1, shape = ap, rate = bp)
-    
-    # Update: tau
-    at = 0.5 * (prior$v + q)
-    bt = 0.5 * (prior$v + sum(beta[idz]^2))
-    tau = rgamma(1, shape = at, rate = bt)
-    
-    # Compute the log prior, likelihood and posterior
-    logprior = get.logprior(beta[idz], tau, psi, prior)
-    loglik = get.loglik(y, eta, psi)
-    logpost  = logprior + loglik
-    
-    # Store the initial values
-    if (iter <= control$burn) {
-      t = iter
-      burn$beta[t,]    = beta
-      burn$tau[t]      = tau
-      burn$psi[t]      = psi
-      burn$logprior[t] = logprior
-      burn$loglik[t]   = loglik
-      burn$logpost[t]  = logpost
-    } else {
-      t = iter - control$burn
-      trace$beta[t,]    = beta
-      trace$tau[t]      = tau
-      trace$psi[t]      = psi
-      trace$logprior[t] = logprior
-      trace$loglik[t]   = loglik
-      trace$logpost[t]  = logpost
-    }
-    
-  }
-  
-  if (control$verbose) {
-    cat(c(rep("-", 50), "\n"), sep = "")
-  }
-  
-  if (control$thin > 1) {
-    idx = seq(from = 1, to = control$burn, by = control$thin)
-    burn$beta     = burn$beta[idx,]
-    burn$delta    = burn$delta[idx,]
-    burn$phi      = burn$phi[idx,]
-    burn$tau      = burn$tau[idx]
-    burn$psi      = burn$psi[idx]
-    burn$logprior = burn$logprior[idx]
-    burn$loglik   = burn$loglik[idx]
-    burn$logpost  = burn$logpost[idx]
-    
-    idx = seq(from = 1, to = control$niter, by = control$thin)
-    trace$beta     = trace$beta[idx,]
-    trace$delta    = trace$delta[idx,]
-    trace$phi      = trace$phi[idx,]
-    trace$tau      = trace$tau[idx]
-    trace$psi      = trace$psi[idx]
-    trace$logprior = trace$logprior[idx]
-    trace$loglik   = trace$loglik[idx]
-    trace$logpost  = trace$logpost[idx]
-  }
-  
-  timef = proc.time()
-  
-  list(y = y, X = X, Z = Z, 
-       prior = prior, control = control, 
-       burn = burn, trace = trace,
-       exe.time = (timef - time0)[3])
-}
-
-
-blm.reg.fit2 = function (y, X, Z, prior = list(), control = list()) {
-  
-  time0 = proc.time()
-  
-  # Set the prior and control parameters
-  prior = init.blm.prior(prior)
-  control = init.blm.control(control)
-  totiter = control$burn + control$niter
-  
-  # Log-prior density function
   get.logprior = function (beta, tau, psi, idx, prior) {
     out = 0
     out = out + dgamma(psi, shape = prior$a, rate = prior$b, log = TRUE)
@@ -232,6 +68,21 @@ blm.reg.fit2 = function (y, X, Z, prior = list(), control = list()) {
   # Log-likelihood function
   get.loglik = function (y, eta, psi) {
     sum(dnorm(y, mean = eta, sd = 1 / sqrt(psi), log = TRUE))
+  }
+  
+  # Check if the data provided are allowed
+  if (!is.numeric(y) && !is.vector(y)) stop("'y' must be a numeric vector.")
+  if (!is.numeric(X) && !is.matrix(X)) stop("'X' must be a numeric matrix.")
+  if (!is.matrix(Z) && !is.list(Z)) stop("'Z' must be a list or a numeric matrix.")
+  
+  # If Z is a matrix, we cast it into a list
+  if (is.matrix(Z))
+    Z = list(Z)
+  
+  # Check if the data dimensions are compatible
+  if (length(y) != nrow(X)) stop("'y' and 'X' must have compatible dimensions.")
+  for (h in 1:length(Z)) {
+    if (length(y) != nrow(Z[[h]])) stop("'y' and 'Z' must have compatible dimensions.")
   }
   
   # Data dimenstions
@@ -360,30 +211,30 @@ blm.reg.fit2 = function (y, X, Z, prior = list(), control = list()) {
   }
   
   if (control$thin > 1) {
-    idx = seq(from = 1, to = control$burn, by = control$thin)
-    burn$beta     = burn$beta[idx,]
-    burn$delta    = burn$delta[idx,]
-    burn$phi      = burn$phi[idx,]
-    burn$tau      = burn$tau[idx,]
-    burn$psi      = burn$psi[idx]
-    burn$logprior = burn$logprior[idx]
-    burn$loglik   = burn$loglik[idx]
-    burn$logpost  = burn$logpost[idx]
+    idt = seq(from = 1, to = control$burn, by = control$thin)
+    burn$beta     = burn$beta[idt,]
+    burn$delta    = burn$delta[idt,]
+    burn$phi      = burn$phi[idt,]
+    burn$tau      = burn$tau[idt,]
+    burn$psi      = burn$psi[idt]
+    burn$logprior = burn$logprior[idt]
+    burn$loglik   = burn$loglik[idt]
+    burn$logpost  = burn$logpost[idt]
     
-    idx = seq(from = 1, to = control$niter, by = control$thin)
-    trace$beta     = trace$beta[idx,]
-    trace$delta    = trace$delta[idx,]
-    trace$phi      = trace$phi[idx,]
-    trace$tau      = trace$tau[idx,]
-    trace$psi      = trace$psi[idx]
-    trace$logprior = trace$logprior[idx]
-    trace$loglik   = trace$loglik[idx]
-    trace$logpost  = trace$logpost[idx]
+    idt = seq(from = 1, to = control$niter, by = control$thin)
+    trace$beta     = trace$beta[idt,]
+    trace$delta    = trace$delta[idt,]
+    trace$phi      = trace$phi[idt,]
+    trace$tau      = trace$tau[idt,]
+    trace$psi      = trace$psi[idt]
+    trace$logprior = trace$logprior[idt]
+    trace$loglik   = trace$loglik[idt]
+    trace$logpost  = trace$logpost[idt]
   }
   
   timef = proc.time()
   
-  list(y = y, X = X, Z = Z, 
+  list(y = y, X = X, Z = Z, idx = idx,
        prior = prior, control = control, 
        burn = burn, trace = trace,
        exe.time = (timef - time0)[3])
