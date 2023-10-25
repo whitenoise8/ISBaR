@@ -409,26 +409,26 @@ mgp.reg.fit = function (y, X, Z, prior = list(), control = list()) {
   }
   
   if (control$thin > 1) {
-    idx = seq(from = 1, to = control$burn, by = control$thin)
-    burn$beta     = burn$beta[idx,]
-    burn$delta    = burn$delta[idx,]
-    burn$phi      = burn$phi[idx,]
-    burn$tau      = burn$tau[idx,]
-    burn$psi      = burn$psi[idx]
-    burn$logprior = burn$logprior[idx]
-    burn$loglik   = burn$loglik[idx]
-    burn$logpost  = burn$logpost[idx]
-    burn$npar     = burn$npar[idx]
+    idt = seq(from = 1, to = control$burn, by = control$thin)
+    burn$beta     = burn$beta[idt,]
+    burn$delta    = burn$delta[idt,]
+    burn$phi      = burn$phi[idt,]
+    burn$tau      = burn$tau[idt,]
+    burn$psi      = burn$psi[idt]
+    burn$logprior = burn$logprior[idt]
+    burn$loglik   = burn$loglik[idt]
+    burn$logpost  = burn$logpost[idt]
+    burn$npar     = burn$npar[idt]
     
-    idx = seq(from = 1, to = control$niter, by = control$thin)
-    trace$beta     = trace$beta[idx,]
-    trace$delta    = trace$delta[idx,]
-    trace$phi      = trace$phi[idx,]
-    trace$tau      = trace$tau[idx,]
-    trace$psi      = trace$psi[idx]
-    trace$logprior = trace$logprior[idx]
-    trace$loglik   = trace$loglik[idx]
-    trace$npar     = trace$npar[idx]
+    idt = seq(from = 1, to = control$niter, by = control$thin)
+    trace$beta     = trace$beta[idt,]
+    trace$delta    = trace$delta[idt,]
+    trace$phi      = trace$phi[idt,]
+    trace$tau      = trace$tau[idt,]
+    trace$psi      = trace$psi[idt]
+    trace$logprior = trace$logprior[idt]
+    trace$loglik   = trace$loglik[idt]
+    trace$npar     = trace$npar[idt]
   }
   
   # Get the final CPU time
