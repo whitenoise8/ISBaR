@@ -1,2 +1,2 @@
-# Increasing-Shrinkage-Bayesian-Regression-ISBaR
+# ISBaR
 Increasing shrinkage prior for Bayesian nonparametric regression
