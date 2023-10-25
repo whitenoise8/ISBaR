@@ -2,5 +2,7 @@
 
 export(blm.reg.fit)
 export(get.bspline)
+export(get.fourier)
 export(get.ospline)
+export(hs.reg.fit)
 export(mgp.reg.fit)
