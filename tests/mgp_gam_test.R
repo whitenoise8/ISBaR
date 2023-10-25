@@ -12,14 +12,7 @@ library(ggpubr)
 library(dplyr)
 library(mgcv)
 
-source("spline_basis.R")
-source("fourier_basis.R")
-source("fast_rmnorm.R")
-source("mgp_reg_utils.R")
-source("blm_reg_fit.R")
-source("hs_reg_fit.R")
-source("mgp_reg_fit.R")
-source("mgp_gam_fit.R")
+devtools::load_all()
 
 ## Data simulation ----
 n = 250; p = 20; a = 0; b = 2
@@ -44,121 +37,73 @@ y = runif(n, min = a, max = b)
 fx = exp(-1.25*x**2) * ((x-0.25)**2 + 0.3)
 fy = .5 * cos(4 * pi/exp(y-a)) / (y-a+1)
 e = rnorm(n, mean = 0, sd = 0.05)
-z = fx + fy + e
+u = fx + fy + e
 
 par(mfrow = c(2,2))
 plot(x, fx, type = "p")
 plot(y, fy, type = "p")
-plot(x, z, type = "p")
-plot(y, z, type = "p")
+plot(x, u, type = "p")
+plot(y, u, type = "p")
 par(mfrow = c(1,1))
 
 ## Spline regression ----
 
-# Compute the basis and penalty matrices for fx
-kx = get.bspline.knots(x, p)
-Bx = get.bspline.matrix(x, kx, a, b)
-Px = get.bspline.penalty(kx, a, b)
-Zx = get.ospline.matrix(x, Bx, Px)$z
-
-# Compute the basis and penalty matrices for fy
-ky = get.bspline.knots(y, p)
-By = get.bspline.matrix(y, ky, a, b)
-Py = get.bspline.penalty(ky, a, b)
-Zy = get.ospline.matrix(y, By, Py)$z
-
-# Compute the fixed-effect covariate matrix
-X = cbind(1, x-(b-a)/2, y-(b-a)/2)
-
-# Compute the completed covariance matrix
-C = cbind(X, Zx, Zy)
+# Compute the basis matrices
+X  = cbind(1, x-(b-a)/2, y-(b-a)/2)
+Zx = get.ospline(x, p, a, b)$Z
+Zy = get.ospline(y, p, a, b)$Z
+Z  = list(Zx, Zy)
+C  = cbind(X, Zx, Zy)
 
 # Fit a Bayesian linear model with standard prior using MCMC
 blm.prior = list(v = 0.1, a = 0.1, b = 0.1)
 blm.control = list(burn = 1000, niter = 5000, report = 500, verbose = TRUE, thin = 5)
-blm.fit = blm.reg.fit2(z, X, list(Zx, Zy), blm.prior, blm.control)
+blm.fit = blm.reg.fit(u, X, Z, blm.prior, blm.control)
 blm.pred = tcrossprod(C, blm.fit$trace$beta) %>% 
   apply(1, quantile, probs = c(0.025, 0.5, 0.975)) %>% t()
 
 # Fit a Bayesian linear models with Horseshoe prior using MCMC
 hs.control = list(burn = 1000, niter = 5000, thin = 5)
-hs.fit = hs.reg.fit(z, X, cbind(Zx, Zy), prior = list(), control = hs.control)
+hs.fit = hs.reg.fit(u, X, Z, prior = list(), control = hs.control)
 hs.pred = tcrossprod(C, hs.fit$trace$beta) %>% 
   apply(1, quantile, probs = c(0.025, 0.5, 0.975)) %>% t()
 
 # Fit a Bayesian linear model with MGP prior using MCMC
 mgp.prior = list(a1 = 2.1, a2 = 3.1, v = 0.1, a = 0.1, b = 0.1)
 mgp.control = list(burn = 1000, niter = 5000, tol = 1e-05, adaptation = TRUE, report = 1000, verbose = TRUE, thin = 5)
-mgp.fit = mgp.gam.fit2(z, X, list(Zx, Zy), mgp.prior, mgp.control)
-mgp.fit$exe.time
+mgp.fit = mgp.reg.fit(u, X, Z, mgp.prior, mgp.control)
 mgp.pred = tcrossprod(C, mgp.fit$trace$beta) %>% 
   apply(1, quantile, probs = c(0.025, 0.5, 0.975)) %>% t()
 
 # Fit a cubic regression spline using PIRLS + REML
-mgcv.fit = mgcv::gam(z ~ s(x, bs = "cr", k = p, m = 2) + s(y, bs = "cr", k = p, m = 2), 
-                     data = data.frame(x = x, y = y, z = z),
+mgcv.fit = mgcv::gam(u ~ s(x, bs = "cr", k = p, m = 2) + s(y, bs = "cr", k = p, m = 2), 
+                     data = data.frame(x = x, y = y, u = u),
                      family = gaussian(), method = "REML")
 mgcv.pred = mgcv::predict.gam(mgcv.fit, se.fit = FALSE)
 mgcv.se = mgcv::predict.gam(mgcv.fit, se.fit = TRUE)$se.fit
 mgcv.pred = cbind(mgcv.pred - 1.96 * mgcv.se, mgcv.pred, mgcv.pred + 1.96 * mgcv.se)
 
-# Compare the estimated curves (posterior mean)
-{
-  plot(x, y, col = 8); lines(x, f, col = 2, lwd = 2)
-  lines(x, blm.pred[,1], col = 3, lty = 2, lwd = 1)
-  lines(x, blm.pred[,2], col = 3, lty = 1, lwd = 2)
-  lines(x, blm.pred[,3], col = 3, lty = 2, lwd = 1)
-  lines(x, mgp.pred[,1], col = 4, lty = 2, lwd = 1)
-  lines(x, mgp.pred[,2], col = 4, lty = 1, lwd = 2)
-  lines(x, mgp.pred[,3], col = 4, lty = 2, lwd = 1)
-  lines(x, hs.pred[,1], col = 7, lty = 2, lwd = 1)
-  lines(x, hs.pred[,2], col = 7, lty = 1, lwd = 2)
-  lines(x, hs.pred[,3], col = 7, lty = 2, lwd = 1)
-  lines(x, mgcv.pred[,1], col = 5, lty = 2, lwd = 1)
-  lines(x, mgcv.pred[,2], col = 5, lty = 1, lwd = 2)
-  lines(x, mgcv.pred[,3], col = 5, lty = 2, lwd = 1)
-  legend("topright", col = c(2, 3, 4, 7, 5), lty = 1, lwd = 2,
-         legend = c("TRUE", "BLM", "MGP", "HS", "MGCV"))
-}
-
-{
-  df = data.frame(
-    x = rep(x, times = 5),
-    y = c(f, blm.pred[,2], hs.pred[,2], mgp.pred[,2], mgcv.pred[,2]),
-    ylo = c(f, blm.pred[,1], hs.pred[,1], mgp.pred[,1], mgcv.pred[,1]),
-    yup = c(f, blm.pred[,3], hs.pred[,3], mgp.pred[,3], mgcv.pred[,3]),
-    method = rep(c("TRUE", "BLM", "HS", "MGP", "MGCV"), each = n))
-  
-  df$method = factor(df$method, levels = c("TRUE", "BLM", "HS", "MGP", "MGCV"))
-  
-  plt = ggplot(data = df) + theme_bw() + labs(x = "", y = "") +
-    geom_point(data = data.frame(x = x, y = y), mapping = aes(x = x, y = y), alpha = 0.4) +
-    geom_line(mapping = aes(x = x, y = y, color = method), lwd = 0.8) + 
-    geom_ribbon(mapping = aes(x = x, ymax = ylo, ymin = yup, fill = method), alpha = 0.3) +
-    facet_wrap(~ method)
-  
-  print(plt)
-}
-
 # Let's have a look to the posterior of the (invese) shrinkage factors
 {
-  # sigma = 1 / sqrt(mgp.fit$trace$tau * mgp.fit$trace$phi)
-  sigma = 1 / sqrt(mgp.fit$trace$phi)[,-c(1:3)]
-  sigma = t(apply(sigma, 2, quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm = TRUE))
+  idx1 = mgp.fit$idx[[2]]
+  idx2 = mgp.fit$idx[[3]]
+  sigma1 = 1 / sqrt(mgp.fit$trace$tau[,2] + mgp.fit$trace$phi[,idx1])
+  sigma1 = t(apply(sigma1, 2, quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm = TRUE))
+  sigma2 = 1 / sqrt(mgp.fit$trace$tau[,3] + mgp.fit$trace$phi[,idx2])
+  sigma2 = t(apply(sigma2, 2, quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm = TRUE))
   par(mfrow = c(1,2))
-  sigma1 = sigma[1:(p+2),]
   matplot(sigma1, type = "o", col = 2:6, lty = 1, pch = 20, 
           xlab = "j", ylab = expression(sigma[j1]), 
           main = expression(paste(
             "Posterior distribution of ", 
             sigma[j1], " = ", (tau[1] * phi[j1])^"-1/2")))
-  sigma2 = sigma[(p+3):(2*p+4),]
+  abline(h = median(1 / sqrt(blm.fit$trace$tau[,2])), col = 1, lty = 2)
   matplot(sigma2, type = "o", col = 2:6, lty = 1, pch = 20, 
           xlab = "j", ylab = expression(sigma[j2]), 
           main = expression(paste(
             "Posterior distribution of ", 
             sigma[j2], " = ", (tau[2] * phi[j2])^"-1/2")))
-  # abline(h = median(1 / sqrt(blm.fit$trace$tau)), col = 1, lty = 2)
+  abline(h = median(1 / sqrt(blm.fit$trace$tau[,3])), col = 1, lty = 2)
   legend("topright", col = 2:6, lty = 1, pch = 20, 
          legend = c("5%", "25%", "50%", "75%", "95%"))
   par(mfrow = c(1,1))
@@ -166,31 +111,60 @@ mgcv.pred = cbind(mgcv.pred - 1.96 * mgcv.se, mgcv.pred, mgcv.pred + 1.96 * mgcv
 
 # Let's have a look to the posterior of the regression coefficients
 {
-  beta.blm = t(apply(blm.fit$trace$beta, 2, quantile, probs = c(0.025, 0.5, 0.975)))
-  beta.mgp = t(apply(mgp.fit$trace$beta, 2, quantile, probs = c(0.025, 0.5, 0.975)))
-  beta.hs = t(apply(hs.fit$trace$beta, 2, quantile, probs = c(0.025, 0.5, 0.975)))
-  plot(0, 0, type = "n", xlim = c(1, (2*(p+2)+3)), ylim = c(-1,+1) * 2.5,
-       xlab = "j", ylab = expression(beta[j]), 
+  idx1 = mgp.fit$idx[[2]]
+  idx2 = mgp.fit$idx[[3]]
+  
+  n1 = length(idx1)
+  n2 = length(idx2)
+  
+  prb = c(0.025, 0.5, 0.975)
+  prb = c(0.1, 0.5, 0.9)
+  
+  beta.blm = t(apply(blm.fit$trace$beta, 2, quantile, probs = prb))
+  beta.mgp = t(apply(mgp.fit$trace$beta, 2, quantile, probs = prb))
+  beta.hs = t(apply(hs.fit$trace$beta, 2, quantile, probs = prb))
+  
+  par(mfrow = c(1,2))
+  plot(0, 0, type = "n", xlim = c(1, n1), ylim = c(-1,+1) * 2.5,
+       xlab = "j", ylab = expression(beta[j1]), 
        main = expression(paste(
-         "Posterior credibility intervals of ", beta[j], " (j = 1, ..., p)")))
+         "Posterior credibility intervals of ", beta[j1], " (j = 1, ..., p)")))
   abline(h = 0, lty = 2, col = 8)
   # Bayesian linear model
-  points(1:(2*(p+2)+3), beta.blm[,2], col = 4, pch = 19)
-  arrows(1:(2*(p+2)+3), beta.blm[,1], 1:(2*(p+2)+3), beta.blm[,3], 
+  points(1:n1, beta.blm[idx1,2], col = 4, pch = 19)
+  arrows(1:n1, beta.blm[idx1,1], 1:n1, beta.blm[idx1,3], 
          angle = 90, code = 3, length = 0.02, col = 4)
   # Multiplicative Gamma process
-  points(1:(2*(p+2)+3)+0.2, beta.mgp[,2], col = 2, pch = 19)
-  arrows(1:(2*(p+2)+3)+0.2, beta.mgp[,1], 1:(2*(p+2)+3)+0.2, beta.mgp[,3], 
+  points(1:n1+0.2, beta.mgp[idx1,2], col = 2, pch = 19)
+  arrows(1:n1+0.2, beta.mgp[idx1,1], 1:n1+0.2, beta.mgp[idx1,3], 
          angle = 90, code = 3, length = 0.02, col = 2)
   # Horseshoe prior
-  points(1:(2*(p+2)+3)+0.4, beta.hs[,2], col = 3, pch = 19)
-  arrows(1:(2*(p+2)+3)+0.4, beta.hs[,1], 1:(2*(p+2)+3)+0.4, beta.hs[,3], 
+  points(1:n1+0.4, beta.hs[idx1,2], col = 3, pch = 19)
+  arrows(1:n1+0.4, beta.hs[idx1,1], 1:n1+0.4, beta.hs[idx1,3], 
+         angle = 90, code = 3, length = 0.02, col = 3)
+  
+  plot(0, 0, type = "n", xlim = c(1, n2), ylim = c(-1,+1) * 9,
+       xlab = "j", ylab = expression(beta[j2]), 
+       main = expression(paste(
+         "Posterior credibility intervals of ", beta[j2], " (j = 1, ..., p)")))
+  abline(h = 0, lty = 2, col = 8)
+  # Bayesian linear model
+  points(1:n2, beta.blm[idx2,2], col = 4, pch = 19)
+  arrows(1:n2, beta.blm[idx2,1], 1:n2, beta.blm[idx2,3], 
+         angle = 90, code = 3, length = 0.02, col = 4)
+  # Multiplicative Gamma process
+  points(1:n2+0.2, beta.mgp[idx2,2], col = 2, pch = 19)
+  arrows(1:n2+0.2, beta.mgp[idx2,1], 1:n2+0.2, beta.mgp[idx2,3], 
+         angle = 90, code = 3, length = 0.02, col = 2)
+  # Horseshoe prior
+  points(1:n2+0.4, beta.hs[idx2,2], col = 3, pch = 19)
+  arrows(1:n2+0.4, beta.hs[idx2,1], 1:n2+0.4, beta.hs[idx2,3], 
          angle = 90, code = 3, length = 0.02, col = 3)
   legend("bottomleft", col = c(4, 2, 3), lty = 1, lwd = 2,
          legend = c("BLM", "MGP", "HS"))
 }
 
-# Signal recontruction error
+# Signal reconstruction error
 rmse = function (x, y = 0) sqrt(mean((x - y)^2))
 
 rmse.blm = tcrossprod(C, blm.fit$trace$beta) |> apply(2, function(x) rmse(x, fx + fy))
