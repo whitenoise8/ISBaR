@@ -14,14 +14,6 @@ library(mgcv)
 
 devtools::load_all()
 
-source("spline_basis.R")
-source("fourier_basis.R")
-source("fast_rmnorm.R")
-source("mgp_reg_utils.R")
-source("blm_reg_fit.R")
-source("mgp_reg_fit.R")
-source("hs_reg_fit.R")
-
 ## Data simulation ----
 n = 250; p = 20; a = 0; b = 2
 x = sort(runif(n, min = a, max = b))
@@ -31,7 +23,7 @@ y = f + e
 
 plot(x, y, col = 8); lines(x, f, col = 2, lwd = 2)
 
-n = 250; p = 20; a = -2; b = +2
+n = 250; p = 50; a = -2; b = +2
 x = sort(runif(n, min = a, max = b))
 f = exp(-x**2) * (cos(0.5 * pi * x + 0.3 * pi))**2
 e = rnorm(n, mean = 0, sd = 0.1)
@@ -76,7 +68,7 @@ hs.pred = tcrossprod(C, hs.fit$trace$beta) %>%
 # Fit a Bayesian linear model with MGP prior using MCMC
 mgp.prior = list(a1 = 2.1, a2 = 3.1, v = 0.1, a = 0.1, b = 0.1)
 mgp.control = list(burn = 1000, niter = 5000, tol = 1e-05, adaptation = TRUE, report = 500, verbose = TRUE, thin = 5)
-mgp.fit = mgp.reg.fit2(y, X, Z, mgp.prior, mgp.control)
+mgp.fit = mgp.reg.fit(y, X, Z, mgp.prior, mgp.control)
 mgp.pred = tcrossprod(C, mgp.fit$trace$beta) %>% 
   apply(1, quantile, probs = c(0.025, 0.5, 0.975)) %>% t()
 
@@ -128,7 +120,7 @@ mgcv.pred = cbind(mgcv.pred - 1.96 * mgcv.se, mgcv.pred, mgcv.pred + 1.96 * mgcv
 
 # Let's have a look to the posterior of the (invese) shrinkage factors
 {
-  sigma = 1 / sqrt(mgp.fit$trace$tau * mgp.fit$trace$phi)
+  sigma = 1 / sqrt(mgp.fit$trace$tau[,2] * mgp.fit$trace$phi)
   sigma = t(apply(sigma, 2, quantile, probs = c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm = TRUE))
   matplot(sigma, type = "o", col = 2:6, lty = 1, pch = 20, 
           xlab = "j", ylab = expression(sigma[j]), 
@@ -210,7 +202,7 @@ blm.pred = tcrossprod(C, blm.fit$trace$beta) %>%
 # Fit a Bayesian linear model with MGP prior using MCMC
 mgp.prior = list(a1 = 2.1, a2 = 3.1, v = 0.1, a = 0.1, b = 0.1)
 mgp.control = list(burn = 1000, niter = 5000, report = 500, adaptation = TRUE, verbose = TRUE, thin = 5)
-mgp.fit = mgp.reg.fit2(y, X, Z, mgp.prior, mgp.control)
+mgp.fit = mgp.reg.fit(y, X, Z, mgp.prior, mgp.control)
 mgp.pred = tcrossprod(C, mgp.fit$trace$beta) %>% 
   apply(1, quantile, probs = c(0.025, 0.5, 0.975)) %>% t()
 
