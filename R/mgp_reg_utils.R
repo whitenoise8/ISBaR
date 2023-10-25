@@ -14,6 +14,7 @@ get.block.idx = function (p) {
   start = cumsum(c(1, p[-n]))
   end = cumsum(p)
   idx = apply(cbind(start, end), 1, function(x) x[1]:x[2])
+  names(idx) = c("X", paste("Z", 1:(n-1), sep = ""))
   return (idx)
 }
 
