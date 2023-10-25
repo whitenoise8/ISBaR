@@ -119,44 +119,59 @@ init.mgp.control = function (control) {
 }
 
 # Function for initializing the unknown parameters of the model
-init.mgp.param = function (y, X, Z, prior) {
-  n = nrow(X)
-  p = ncol(X)
-  q = ncol(Z)
-  
-  idx = 1:p
-  idz = (p+1):(p+q)
+init.mgp.param = function (y, C, idx, prior) {
+  n = length(y)
+  p = unlist(lapply(idx, length))
+  H = length(p)
+  k = sum(p)
   
   # Init: beta
-  D = diag(c(rep(0, p), rep(0.1/q, q)))
-  A = crossprod(cbind(X, Z)) + D
-  b = crossprod(cbind(X, Z), y)
+  lambda = rep(0, length = k)
+  for (h in 2:H) {
+    lambda[idx[[h]]] = rep(0.1 / p[h], p[h])
+  }
+  A = crossprod(C) + diag(lambda)
+  b = crossprod(C, y)
   beta = rmnorm(A, b)
+  
+  # Init: eta
+  eta = C %*% beta
   
   # Init: psi
   ap = prior$a + 0.5 * n
-  bp = prior$b + 0.5 * sum((y - X %*% beta[idx] - Z %*% beta[idz])^2)
+  bp = prior$b + 0.5 * sum((y - eta)^2)
   psi = stats::rgamma(1, shape = ap, rate = ap)
   
   # Init: tau
-  at = 0.5 * (prior$v + q)
-  bt = 0.5 * (prior$v + sum(beta[idz]^2))
-  tau = stats::rgamma(1, shape = at, rate = at)
+  tau = rep(0, length = H)
+  for (h in 2:H) {
+    ih = idx[[h]]
+    at = 0.5 * (prior$v + p[h])
+    bt = 0.5 * (prior$v + sum(beta[ih]^2))
+    tau[h] = stats::rgamma(1, shape = at, rate = at)
+  }
   
-  # Init: delta
-  ad = prior$a1 + 0.5 * q
-  bd = 1 + 0.5 * tau * beta[idz[1]]^2
-  delta = rep(NA, length = q)
-  delta[1] = stats::rgamma(1, shape = ad, rate = ad)
-  
-  for (h in 2:q) {
-    ad = prior$a2 + 0.5 * (q - h + 1)
-    bd = 1 + 0.5 * tau * beta[idz[h]]^2
-    delta[h] = stats::rgamma(1, shape = ad, rate = ad)
+  # Init: delta and phi
+  delta = rep(0, length = k)
+  phi = rep(0, length = k)
+  for (h in 2:H) {
+    ph = p[h]
+    ih = idx[[h]]
+    ad = prior$a1 + 0.5 * ph
+    bd = 1 + 0.5 * tau[h] * beta[ih]^2
+    deltah = rep(NA, length = ph)
+    deltah[1] = stats::rgamma(1, shape = ad, rate = ad)
+    for (jh in 2:ph) {
+      ad = prior$a2 + 0.5 * (ph - jh + 1)
+      bd = 1 + 0.5 * tau[h] * beta[ih]^2
+      deltah[jh] = stats::rgamma(1, shape = ad, rate = ad)
+    }
+    delta[ih] = deltah
+    phi[ih] = cumprod(deltah)
   }
   
   # output
-  list(beta = beta, delta = delta, tau = tau, psi = psi)
+  list(beta = beta, delta = delta, phi = phi, tau = tau, psi = psi)
 }
 
 # Simulate from the prior distribution
