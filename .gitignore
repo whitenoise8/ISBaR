@@ -69,3 +69,7 @@ Rcpp.pro.user
 # VS-Code
 .vscode
 .vscode/
+
+# Sandbox
+sandbox
+sandbox/
