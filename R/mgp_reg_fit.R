@@ -93,62 +93,6 @@ mgp.reg.fit = function (y, X, Z, prior = list(), control = list()) {
   control = init.mgp.control(control)
   maxiter = control$burn + control$niter
   
-  # Initialize all model parameters
-  init.param = function (y, C, idx, prior) {
-    n = length(y)
-    p = unlist(lapply(idx, length))
-    H = length(p)
-    k = sum(p)
-    
-    # Init: beta
-    lambda = rep(0, length = k)
-    for (h in 2:H) {
-      lambda[idx[[h]]] = rep(0.1 / p[h], p[h])
-    }
-    A = crossprod(C) + diag(lambda)
-    b = crossprod(C, y)
-    beta = rmnorm(A, b)
-    
-    # Init: eta
-    eta = C %*% beta
-    
-    # Init: psi
-    ap = prior$a + 0.5 * n
-    bp = prior$b + 0.5 * sum((y - eta)^2)
-    psi = stats::rgamma(1, shape = ap, rate = ap)
-    
-    # Init: tau
-    tau = rep(0, length = H)
-    for (h in 2:H) {
-      ih = idx[[h]]
-      at = 0.5 * (prior$v + p[h])
-      bt = 0.5 * (prior$v + sum(beta[ih]^2))
-      tau[h] = stats::rgamma(1, shape = at, rate = at)
-    }
-    
-    # Init: delta and phi
-    delta = rep(0, length = k)
-    phi = rep(0, length = k)
-    for (h in 2:H) {
-      ph = p[h]
-      ih = idx[[h]]
-      ad = prior$a1 + 0.5 * ph
-      bd = 1 + 0.5 * tau[h] * beta[ih]^2
-      deltah = rep(NA, length = ph)
-      deltah[1] = stats::rgamma(1, shape = ad, rate = ad)
-      for (jh in 2:ph) {
-        ad = prior$a2 + 0.5 * (ph - jh + 1)
-        bd = 1 + 0.5 * tau[h] * beta[ih]^2
-        deltah[jh] = stats::rgamma(1, shape = ad, rate = ad)
-      }
-      delta[ih] = deltah
-      phi[ih] = cumprod(deltah)
-    }
-    
-    # output
-    list(beta = beta, delta = delta, phi = phi, tau = tau, psi = psi)
-  }
-  
   # Log-prior density function
   get.logprior = function (beta, delta, tau, psi, idx, q, prior) {
     out = 0
@@ -240,7 +184,7 @@ mgp.reg.fit = function (y, X, Z, prior = list(), control = list()) {
                npar     = rep(NA, length = control$niter))
   
   # Initialize the unknown parameters
-  init  = init.param(y, C, idx, prior)
+  init  = init.mgp.param(y, C, idx, prior)
   beta  = init$beta
   delta = init$delta
   tau   = init$tau
