@@ -1,53 +1,80 @@
-#' mgp_reg_fit.R
-#' author: Cristian Castiglione
-#' creation: 04/08/2023
-#' last change: 16/10/2023
-#' 
-#' description: 
-#'   This file implements a Gibbs sampling algorithm for estimating a Bayesian 
-#'   linear model predicting the response y given the covariate matrix X.
-#'   Assuming that the columns of X are sorted in a decresing order of 
-#'   importance, we assume for the regreesion coefficients beta an increasing 
-#'   shrinkage prior based on the multiplicative gamma process by 
-#'   Bhattacharya & Dunson (2011). See also Durante (2017).
-#'   
-#' references:
-#'   Bhattacharya & Dunson (2011)
-#'   Sparse Bayesian infinite factor models
-#'   Biometrika, 98(2): 291-306
-#'   
-#'   Durante (2017). 
-#'   A note on the multiplicative gamma process
-#'   Statistics and Probability Letters, 122: 198-204
-#'   
-#' model specification:
-#' 
-#'   y = X beta + Z u + e, e ~ N(0, psi^-1)
-#'   beta ~ N(0, eta^-1 I), eta -> inf
-#'   u_j ~ N(0, tau^-1 phi_j^-1), (j = 2, ..., p)
-#'   phi_j = delta_1 x ... x delta_j, (j = 2, ..., p)
-#'   delta_1 ~ Gamma(a1, 1)
-#'   delta_j ~ Gamma(a2, 1), (j = 2, ..., p)
-#'   tau ~ Gamma(v/2, v/2)
-#'   psi ~ Gamma(a, b)
-#'   
-#'   where a1, a2, a, b, v > 0 are fixed hyperparameters.
-#'   To induce an increasing shrinkage on beta, we need to impose a2 > a1.
-#'   Moreover, to guarantee for 1 / phi_j (j = 1, ..., n) to have finite
-#'   first and second moment, we need a1 > 2 and a3 > 3. 
-#' 
+# file: mgp_reg_fit.R
+# author: Cristian Castiglione
+# creation: 04/08/2023
+# last change: 16/10/2023
+# 
+# description: 
+#   This file implements a Gibbs sampling algorithm for estimating a Bayesian 
+#   linear model predicting the response y given the covariate matrix X.
+#   Assuming that the columns of X are sorted in a decresing order of 
+#   importance, we assume for the regreesion coefficients beta an increasing 
+#   shrinkage prior based on the multiplicative gamma process by 
+#   Bhattacharya & Dunson (2011). See also Durante (2017).
+#   
+# references:
+#   Bhattacharya & Dunson (2011)
+#   Sparse Bayesian infinite factor models
+#   Biometrika, 98(2): 291-306
+#   
+#   Durante (2017). 
+#   A note on the multiplicative gamma process
+#   Statistics and Probability Letters, 122: 198-204
+#   
+# model specification:
+# 
+#   y = X beta + Z u + e, e ~ N(0, psi^-1)
+#   beta ~ N(0, eta^-1 I), eta -> inf
+#   u_j ~ N(0, tau^-1 phi_j^-1), (j = 2, ..., p)
+#   phi_j = delta_1 x ... x delta_j, (j = 2, ..., p)
+#   delta_1 ~ Gamma(a1, 1)
+#   delta_j ~ Gamma(a2, 1), (j = 2, ..., p)
+#   tau ~ Gamma(v/2, v/2)
+#   psi ~ Gamma(a, b)
+#   
+#   where a1, a2, a, b, v > 0 are fixed hyperparameters.
+#   To induce an increasing shrinkage on beta, we need to impose a2 > a1.
+#   Moreover, to guarantee for 1 / phi_j (j = 1, ..., n) to have finite
+#   first and second moment, we need a1 > 2 and a3 > 3. 
+# 
 
-#' Take a look to the following articles for an efficient sampling from
-#' the full-conditional of beta:
-#' Bhattacharya, Chakraborty, Mallik (2016)
-#' Fast sampling with Gaussian scale mixture priors in high-dimensional regression
-#' Biometrika, 103(4): 985-991
-#' 
-#' Rue (2001)
-#' Fast sampling of Gaussian Markov random fields
-#' Journal of the Royal Statistical Society, Series B, 63(): 325-338
-#'
+# Take a look to the following articles for an efficient sampling from
+# the full-conditional of beta:
+# Bhattacharya, Chakraborty, Mallik (2016)
+# Fast sampling with Gaussian scale mixture priors in high-dimensional regression
+# Biometrika, 103(4): 985-991
+# 
+# Rue (2001)
+# Fast sampling of Gaussian Markov random fields
+# Journal of the Royal Statistical Society, Series B, 63(): 325-338
 
+#' @title Fit a Bayesian linear model via Gibbs sampling
+#' 
+#' @description
+#' A short description...
+#' 
+#' @param y response vector
+#' @param X fixed effect design matrix, including all the variables that must not be penalized
+#' @param Z random effect design matrix, including all the variable subject to regularization
+#' @param prior list of prior parameters. More information are provided in 'Details'.
+#' @param control list of control parameter. More information are provided in 'Details'.
+#' 
+#' @details
+#' Additional details...
+#' 
+#' 
+#' @return Returns an object of class "blm", which is a list containing the following elements:
+#' \describe{
+#'   \item{\code{y}}{response vector}
+#'   \item{\code{X}}{fixed effect design matrix}
+#'   \item{\code{Z}}{random effect design matrix}
+#'   \item{\code{prior}}{list of prior parameters}
+#'   \item{\code{control}}{list of control parameters}
+#'   \item{\code{burn}}{list containig the sampled chains of all the parameters during the burn-in iterations}
+#'   \item{\code{trace}}{list containing the sampled chains of all the parameters after the burn-in period}
+#'   \item{\code{exe.time}}{execution time in seconds}
+#' }
+#' 
+#' @export
 mgp.reg.fit = function (y, X, Z, prior = list(), control = list()) {
   
   # Get the initial CPU time

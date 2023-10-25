@@ -1,9 +1,31 @@
-#' fast_rmnorm.R
-#' author: Cristian Castiglione
-#' creation: 16/10/2023
-#' last change: 16/10/2023
+# fast_rmnorm.R
+# author: Cristian Castiglione
+# creation: 16/10/2023
+# last change: 25/10/2023
 
-# Sample from a Gaussian distribution N(m, V) with m = inv(A)*b, V = inv(A)
+#' @title Draw a sample from a multivariate Gaussian distribution
+#' 
+#' @description
+#' \code{rmnorm} draws a sample \eqn{x} from a multivariate Gaussian distribution 
+#' \eqn{N_p(\mu, \Sigma)} having mean vector \eqn{\mu = A^{-1} b} and variance matrix 
+#' \eqn{\Sigma = A^{-1}}, where \eqn{A} is a \eqn{p \times p} positive definite 
+#' matrix and \eqn{b} is a \eqn{p \times 1} vector.
+#' 
+#' @param A a square positive definite numeric matrix
+#' @param b a numeric vector
+#' 
+#' @details
+#' \code{rmnorm} uses a fast sampling scheme based on the algorithm proposed by Rue (2001).
+#' 
+#' 
+#' @return A vector containing the sampled Gaussian variables.
+#' 
+#' @references 
+#'   Rue (2001)
+#'   Fast sampling of Gaussian Markov random fields.
+#'   Journal of the Royal Statistical Society, Series B, 63(2): 325-338
+#' 
+#' @keywords internal
 rmnorm = function (A, b) {
   R = chol(A)
   z = rnorm(length(b))
@@ -20,7 +42,25 @@ rmnorm2 = function (A, b) {
   return (x)
 }
 
-# Solve the linear system Ax = b using the forward-backward algorithm
+#' @title Solve the linear system using the forward-backward Cholesky algorithm
+#' 
+#' @description
+#' \code{lschol} implements the \code{LS-CHOL} algorithm to solve the linear system
+#' \eqn{Ax = b} with respect to \eqn{x}, where \eqn{A} is a square positive definite
+#' matrix and \eqn{b} is a vector or a matrix with compatible dimensions.
+#' 
+#' @param A a square positive definite numeric matrix
+#' @param b a numeric vector/matrix
+#' @param upper if \code{TRUE}, uses the upper Cholesky factor of \code{A}
+#' 
+#' @return A list containing:
+#' \describe{
+#'   \item{\code{sol}}{the solution of the linear system}
+#'   \item{\code{chol}}{the upper/lower Cholesky factor of \code{A}}
+#'   \item{\code{inv}}{the inverse Cholesky factor of \code{A}}
+#' }
+#' 
+#' @keywords internal
 lschol = function (A, b, upper = FALSE) {
   out = list()
   out = NULL
@@ -38,6 +78,24 @@ lschol = function (A, b, upper = FALSE) {
   return (out)
 }
 
+
+#' @title Solve the linear system using the forward-backward Cholesky algorithm
+#' 
+#' @description
+#' \code{lschol2} is an alternative implementation of \code{lschol}.
+#' 
+#' @param A a square positive definite numeric matrix
+#' @param b a numeric vector/matrix
+#' @param upper if \code{TRUE}, uses the upper Cholesky factor of \code{A}
+#' 
+#' @return A list containing:
+#' \describe{
+#'   \item{\code{sol}}{the solution of the linear system}
+#'   \item{\code{chol}}{the upper/lower Cholesky factor of \code{A}}
+#'   \item{\code{inv}}{the inverse Cholesky factor of \code{A}}
+#' }
+#' 
+#' @keywords internal
 lschol2 = function (A, b, upper = FALSE) {
   out = list()
   out = NULL
@@ -55,6 +113,19 @@ lschol2 = function (A, b, upper = FALSE) {
   return (out)
 }
 
+
+#' @title Solve the linear system using the forward-backward Cholesky algorithm
+#' 
+#' @description
+#' \code{lschol3} is equivalent to \code{lschol}, but instead of returning both the
+#' solution of the linear system and the cholesky factor of \code{A}, it just returns
+#' the solution, saving memory and execution time.
+#' 
+#' @param A a square positive definite numeric matrix
+#' @param b a numeric vector/matrix
+#' @param upper if \code{TRUE}, uses the upper Cholesky factor of \code{A}
+#' 
+#' @keywords internal
 lschol3 = function (A, b, upper = TRUE) {
   s = NULL
   if (upper) {

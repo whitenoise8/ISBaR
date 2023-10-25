@@ -1,15 +1,14 @@
 #' spline_basis.R
 #' author: Cristian Castiglione
-#' creation: 09/08/2023
-#' last change: 24/10/2023
-#' references: 
-#'   Wand, Ormerod (2008) 
-#'   On semiparametric regression with O'Sullivan penalized splines
-#'   Australian & New Zealand Journal of Statistics, 50(2): 179-198
+# creation: 09/08/2023
+# last change: 24/10/2023
+# references: 
+#   Wand, Ormerod (2008) 
+#   On semiparametric regression with O'Sullivan penalized splines
+#   Australian & New Zealand Journal of Statistics, 50(2): 179-198
 
-library(splines)
-
-# Create a vector of basis knots
+#' Create a vector of basis knots
+#' @keywords internal
 get.bspline.knots = function (x, n, unif = FALSE) {
   knots = NULL
   if (unif) {
@@ -23,12 +22,14 @@ get.bspline.knots = function (x, n, unif = FALSE) {
   return (knots)
 }
 
-# Create the basis matrix for third order B-spline regression 
+#' Create the basis matrix for third order B-spline regression
+#' @keywords internal
 get.bspline.matrix = function (x, knots, a, b) {
-  bs(x, knots = knots, degree = 3, Boundary.knots = c(a, b), intercept = TRUE)
+  splines::bs(x, knots = knots, degree = 3, Boundary.knots = c(a, b), intercept = TRUE)
 }
 
-# Create the penalty matrix for third order O'SUllivan spline regression
+#' Create the penalty matrix for third order O'SUllivan spline regression
+#' @keywords internal
 get.bspline.penalty = function (knots, a, b) {
   
   # Build a vector of expanded knots for Simpson quadrature
@@ -39,7 +40,7 @@ get.bspline.penalty = function (knots, a, b) {
   
   # Compute the second derivative matrix for cubic B-spline
   # over the Simpson quadrature knots
-  ddB = spline.des(allknots, xt, derivs = rep(2, length(xt)), outer.ok = TRUE)$design
+  ddB = splines::spline.des(allknots, xt, derivs = rep(2, length(xt)), outer.ok = TRUE)$design
   
   # Form the weighted crossproduct to integrate out the time
   S = crossprod(ddB, wts * ddB)
@@ -48,7 +49,8 @@ get.bspline.penalty = function (knots, a, b) {
   return (S)
 }
 
-# Create othogonalized design and penalty matrices for O'Sullivan spline regression
+#' Create othogonalized design and penalty matrices for O'Sullivan spline regression
+#' @keywords internal
 convert.to.ospline = function (x, B = NULL, P = NULL, check = TRUE) {
   
   # Number of basis
@@ -87,7 +89,25 @@ convert.to.ospline = function (x, B = NULL, P = NULL, check = TRUE) {
   list(d = d, X = X, Z = Z)
 }
 
-# Create standard design and penalty matrices for B-spline regression
+#' @title Create standard design and penalty matrices for B-spline regression
+#' 
+#' @description
+#' \code{get.bspline} compute the basis and penalty matrices for a B-spline basis expansion of dimension \code{n}
+#' 
+#' @param x description
+#' @param n number of knots to include in the basis expansion
+#' @param a lower bound of x
+#' @param b upper bound of x
+#' @param unif if \code{TRUE} select the knots uniformly in \code{[a,b]} (default \code{FALSE})
+#' 
+#' @return description
+#' \describe{
+#'   \item{\code{k}}{vector of basis knots}
+#'   \item{\code{B}}{B-spline basis matrix}
+#'   \item{\code{P}}{B-spline penalty matrix}
+#' }
+#' 
+#' @export
 get.bspline = function (x, n = 20, a = 0, b = 1, unif = FALSE) {
   
   # Get the knots, the basis matrix and the penalty matrix
@@ -99,7 +119,34 @@ get.bspline = function (x, n = 20, a = 0, b = 1, unif = FALSE) {
   list(k = k, B = B, P = P)
 }
 
-# Create othogonalized design and penalty matrices for O'Sullivan spline regression
+#' @title Create the othogonalized design matrix for O'Sullivan spline regression
+#' 
+#' @description
+#' \code{get.ospline} compute the basis matrices for an O'Sullivan spline basis expansion,
+#' which consists of an orthogonalized version of B-spline representation where the basis
+#' matrix is rotated and scaled using the eigenvectors and eigenvalues of the B-spline 
+#' penalty matrix.
+#' 
+#' @param x description
+#' @param n number of knots to include in the basis expansion
+#' @param a lower bound of x
+#' @param b upper bound of x
+#' @param unif if \code{TRUE}, selects the knots uniformly in \code{[a,b]} (default \code{FALSE})
+#' @param check if \code{TRUE}, perform a stability check on the orthogonalized basis
+#' 
+#' @return \code{get.ospline} returns a list containig the following elements:
+#' \describe{
+#'   \item{\code{d}}{vector of positive eigenvalues of the B-spline penalty matrix}
+#'   \item{\code{X}}{basis matrix spanning the null-space of the B-spline penalty}
+#'   \item{\code{Z}}{basis matrix spanning the non-linear part of the expansion}
+#' }
+#' 
+#' @references 
+#'  Wand, Ormerod (2008) 
+#'  On semiparametric regression with O'Sullivan penalized splines
+#'  Australian & New Zealand Journal of Statistics, 50(2): 179-198
+#' 
+#' @export
 get.ospline = function (x, n = 20, a = 0, b = 1, unif = FALSE, check = TRUE) {
   
   # Get the knots, the basis matrix and the penalty matrix
