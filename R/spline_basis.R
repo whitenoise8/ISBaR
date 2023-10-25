@@ -1,5 +1,5 @@
-#' spline_basis.R
-#' author: Cristian Castiglione
+# spline_basis.R
+# author: Cristian Castiglione
 # creation: 09/08/2023
 # last change: 24/10/2023
 # references: 
@@ -7,7 +7,7 @@
 #   On semiparametric regression with O'Sullivan penalized splines
 #   Australian & New Zealand Journal of Statistics, 50(2): 179-198
 
-#' Create a vector of basis knots
+#' @title Create a vector of basis knots
 #' @keywords internal
 get.bspline.knots = function (x, n, unif = FALSE) {
   knots = NULL
@@ -22,13 +22,13 @@ get.bspline.knots = function (x, n, unif = FALSE) {
   return (knots)
 }
 
-#' Create the basis matrix for third order B-spline regression
+#' @title Create the basis matrix for third order B-spline regression
 #' @keywords internal
 get.bspline.matrix = function (x, knots, a, b) {
   splines::bs(x, knots = knots, degree = 3, Boundary.knots = c(a, b), intercept = TRUE)
 }
 
-#' Create the penalty matrix for third order O'SUllivan spline regression
+#' @title Create the penalty matrix for third order O'SUllivan spline regression
 #' @keywords internal
 get.bspline.penalty = function (knots, a, b) {
   
@@ -49,7 +49,7 @@ get.bspline.penalty = function (knots, a, b) {
   return (S)
 }
 
-#' Create othogonalized design and penalty matrices for O'Sullivan spline regression
+#' @title Create othogonalized design and penalty matrices for O'Sullivan spline regression
 #' @keywords internal
 convert.to.ospline = function (x, B = NULL, P = NULL, check = TRUE) {
   
