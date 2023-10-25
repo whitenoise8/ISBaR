@@ -1,7 +1,7 @@
 Package: ISBaR
 Type: Package
 Title: Increasing shrinkage priors for Bayesian nonparametric regression
-Version: 1.0
+Version: 0.1
 Date: 2023-09-28
 Author: Nicolas Bianco, Cristian Castiglione
 Maintainer: Nicolas Bianco <nicolas.bianco@upf.edu>
@@ -12,8 +12,11 @@ Description: The ISBaR package implements semiparametric additive Gaussian model
     coefficients. Currently, P-spline, wavelet and Fourier basis expansion are 
     employeed for the estimation of the non-linear components in the model. 
 License: MIT License
-Imports: Rcpp (>= 1.0.10)
-LinkingTo: Rcpp, RcppArmadillo
+Encoding: UTF-8
+Imports: 
+    splines,
+    mvtnorm
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+RoxygenNote: 7.2.3
