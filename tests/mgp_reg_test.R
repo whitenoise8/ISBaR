@@ -12,6 +12,8 @@ library(ggpubr)
 library(dplyr)
 library(mgcv)
 
+devtools::load_all()
+
 source("spline_basis.R")
 source("fourier_basis.R")
 source("fast_rmnorm.R")
@@ -49,11 +51,13 @@ plot(x, y, col = 8); lines(x, f, col = 2, lwd = 2)
 ## Spline regression ----
 
 # Compute the basis and penalty matrices
-k = get.bspline.knots(x, p)
-B = get.bspline.matrix(x, k, a, b)
-P = get.bspline.penalty(k, a, b)
-Z = get.ospline.matrix(x, B, P)$z
-X = cbind(1, x-mean(x))
+bspline = get.bspline(x, p, a, b)
+ospline = get.ospline(x, p, a, b)
+
+B = bspline$B
+P = bspline$P
+X = ospline$X
+Z = ospline$Z
 C = cbind(X, Z)
 
 # Fit a Bayesian linear model with standard prior using MCMC
@@ -192,7 +196,7 @@ ggplot(data = df, mapping = aes(x = RMSE, fill = model, color = model)) +
 ## Fourier regression ----
 
 # Compute the basis and penalty matrices
-Z = get.fourier.matrix(x, p)
+Z = get.fourier(x, p)
 X = cbind(1, x-1)
 C = cbind(X, Z)
 
@@ -205,8 +209,8 @@ blm.pred = tcrossprod(C, blm.fit$trace$beta) %>%
 
 # Fit a Bayesian linear model with MGP prior using MCMC
 mgp.prior = list(a1 = 2.1, a2 = 3.1, v = 0.1, a = 0.1, b = 0.1)
-mgp.control = list(burn = 1000, niter = 5000, report = 500, verbose = TRUE, thin = 5)
-mgp.fit = mgp.reg.fit(y, X, Z, mgp.prior, mgp.control)
+mgp.control = list(burn = 1000, niter = 5000, report = 500, adaptation = TRUE, verbose = TRUE, thin = 5)
+mgp.fit = mgp.reg.fit2(y, X, Z, mgp.prior, mgp.control)
 mgp.pred = tcrossprod(C, mgp.fit$trace$beta) %>% 
   apply(1, quantile, probs = c(0.025, 0.5, 0.975)) %>% t()
 
