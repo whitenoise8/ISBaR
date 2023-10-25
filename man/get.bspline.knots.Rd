@@ -2,15 +2,11 @@
 % Please edit documentation in R/spline_basis.R
 \name{get.bspline.knots}
 \alias{get.bspline.knots}
-\title{spline_basis.R
-author: Cristian Castiglione
-Create a vector of basis knots}
+\title{Create a vector of basis knots}
 \usage{
 get.bspline.knots(x, n, unif = FALSE)
 }
 \description{
-spline_basis.R
-author: Cristian Castiglione
 Create a vector of basis knots
 }
 \keyword{internal}
