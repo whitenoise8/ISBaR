@@ -4,12 +4,13 @@ Title: Increasing shrinkage priors for Bayesian nonparametric regression
 Version: 1.0
 Date: 2023-09-28
 Author: Nicolas Bianco, Cristian Castiglione
-Maintainer: Nicolas Bianco <nicolas.bianco@upf.edu>, Cristian Castiglione <cristian.castiglione@unipd.it>
+Maintainer: Nicolas Bianco <nicolas.bianco@upf.edu>
 Description: The ISBaR package implements semiparametric additive Gaussian models 
-    equipped with Increasing shrinkage priors. Specifically, the multiplicative 
+    equipped with increasing shrinkage priors. Specifically, the multiplicative 
     gamma prior (MGP) and the cumulative shrinkage prior (CUSP) are considered 
     to introuce stochastic increasing regularization effects on the basis
-    coefficients. P-spline, wavelet and Fourier basis are employeed.
+    coefficients. Currently, P-spline, wavelet and Fourier basis expansion are 
+    employeed for the estimation of the non-linear components in the model. 
 License: MIT License
 Imports: Rcpp (>= 1.0.10)
 LinkingTo: Rcpp, RcppArmadillo
