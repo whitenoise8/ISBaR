@@ -92,10 +92,28 @@ hs.reg.fit = function (y, X, Z, prior = list(), control = list()) {
   if (check(control$thin)) default$thin = control$thin
   if (is.logical(control$verbose)) default$verbose = control$verbose
   
+  # Check if the data provided are allowed
+  if (!is.numeric(y) && !is.vector(y)) stop("'y' must be a numeric vector.")
+  if (!is.numeric(X) && !is.matrix(X)) stop("'X' must be a numeric matrix.")
+  if (!is.matrix(Z) && !is.list(Z)) stop("'Z' must be a list or a numeric matrix.")
+  
+  # If Z is a matrix, we cast it into a list
+  if (is.matrix(Z))
+    Z = list(Z)
+  
+  # Check if the data dimensions are compatible
+  if (length(y) != nrow(X)) stop("'y' and 'X' must have compatible dimensions.")
+  for (h in 1:length(Z)) {
+    if (length(y) != nrow(Z[[h]])) stop("'y' and 'Z' must have compatible dimensions.")
+  }
+  
+  # Build the completed design matrix
+  C = cbind(X, do.call(cbind, Z))
+  
   # Fit the Horseshoe linear model
   fit = NULL
   if (default$verbose) {
-    fit <- horseshoe::horseshoe(y = y, X = cbind(X, Z),
+    fit <- horseshoe::horseshoe(y = y, X = C,
                                 method.tau = "halfCauchy",
                                 method.sigma = "Jeffreys",
                                 burn = default$burn, 
@@ -104,7 +122,7 @@ hs.reg.fit = function (y, X, Z, prior = list(), control = list()) {
   } else {
     invisible(
       capture.output(
-        fit <- horseshoe::horseshoe(y = y, X = cbind(X, Z),
+        fit <- horseshoe::horseshoe(y = y, X = C,
                                     method.tau = "halfCauchy",
                                     method.sigma = "Jeffreys",
                                     burn = default$burn, 
