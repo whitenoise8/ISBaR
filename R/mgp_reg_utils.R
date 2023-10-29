@@ -3,12 +3,14 @@
 #' creation: 04/08/2023
 #' last change: 16/09/2023
 
-# Get the column-dimension of each block
+#' Get the column-dimension of each block
+#' @keywords internal
 get.block.dim = function (X, Z) {
   c(ncol(X), unlist(lapply(Z, ncol)))
 }
 
-# Get the column-indices of each block
+#' Get the column-indices of each block
+#' @keywords internal
 get.block.idx = function (p) {
   n = length(p)
   start = cumsum(c(1, p[-n]))
@@ -18,7 +20,8 @@ get.block.idx = function (p) {
   return (idx)
 }
 
-# Get the column-indices of each block concatenated by row
+#' Get the column-indices of each block concatenated by row
+#' @keywords internal
 get.flat.idx = function (idx, q) {
   keep = c()
   for (h in 1:length(q)) {
@@ -27,13 +30,15 @@ get.flat.idx = function (idx, q) {
   return (keep)
 }
 
-# Build the model matrix and the sufficient statistics
+#' Build the model matrix and the sufficient statistics
+#' @keywords internal
 get.matrix = function (X, Z) {
   C = cbind(X, do.call(cbind, Z))
   return (C)
 }
 
-# Get the vector of penalty parameters
+#' Get the vector of penalty parameters
+#' @keywords internal
 get.penalty = function (tau, phi, idx) {
   lambda = rep(0, length = length(phi))
   for (h in 2:length(idx)) {
@@ -43,7 +48,8 @@ get.penalty = function (tau, phi, idx) {
   return (lambda)
 }
 
-# Function for initializing the prior parameters of the MGP
+#' Function for initializing the prior parameters of the MGP
+#' @keywords internal
 init.mgp.prior = function (prior) {
   default = list(
     a = 2.1,
@@ -78,7 +84,8 @@ init.mgp.prior = function (prior) {
   return (default)
 }
 
-# Function for initializing the control parameters of the algorithms
+#' Function for initializing the control parameters of the algorithms
+#' @keywords internal
 init.mgp.control = function (control) {
   
   # Default control parameters
@@ -118,7 +125,8 @@ init.mgp.control = function (control) {
   return (default)
 }
 
-# Function for initializing the unknown parameters of the model
+#' Function for initializing the unknown parameters of the model
+#' @keywords internal
 init.mgp.param = function (y, C, idx, prior) {
   n = length(y)
   p = unlist(lapply(idx, length))
@@ -174,7 +182,8 @@ init.mgp.param = function (y, C, idx, prior) {
   list(beta = beta, delta = delta, phi = phi, tau = tau, psi = psi)
 }
 
-# Simulate from the prior distribution
+#' Simulate from the prior distribution
+#' @keywords internal
 mgp.prior.sim = function (npar, niter, prior) {
   psi = stats::rgamma(niter, shape = prior$a, rate = prior$b)
   tau = stats::rgamma(niter, shape = 0.5 * prior$v, rate = 0.5 * prior$v)
