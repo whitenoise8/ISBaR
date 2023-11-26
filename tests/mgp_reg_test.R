@@ -53,14 +53,16 @@ lines(x, f, col = 2, lwd = 2)
 ## Spline regression ----
 
 # Compute the basis and penalty matrices
-bspline = get.bspline(x, p, a, b)
-ospline = get.ospline(x, p, a, b)
-
-B = bspline$B
-P = bspline$P
-X = ospline$X
-Z = ospline$Z
-C = cbind(X, Z)
+{
+  bspline = get.bspline(x, p, a, b)
+  ospline = get.ospline(x, p, a, b)
+  
+  B = bspline$B
+  P = bspline$P
+  X = ospline$X
+  Z = ospline$Z
+  C = cbind(X, Z)
+}
 
 # Fit a Bayesian linear model with standard prior using MCMC
 {
