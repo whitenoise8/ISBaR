@@ -1,4 +1,4 @@
-# fast_rmnorm.R
+# file: fast_rmnorm.R
 # author: Cristian Castiglione
 # creation: 16/10/2023
 # last change: 25/10/2023
